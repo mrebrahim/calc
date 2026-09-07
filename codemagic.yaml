@@ -3,6 +3,12 @@
 # The repo is a managed Expo project: android/ and ios/ are NOT committed, so
 # every workflow regenerates them with `expo prebuild` before building.
 #
+# Instance type: every workflow runs on `mac_mini_m2`. The free plan's build
+# minutes are macOS-only — `linux_x2` and `windows_x2` are rejected with
+# "The selected instance type is not available with the current billing plan"
+# until billing is enabled. Android builds fine on the macOS image; if you do
+# enable billing, switch the two android workflows to `linux_x2` (cheaper).
+#
 # Environment variables to set in Codemagic (App settings → Environment variables),
 # both in a group named `supabase`:
 #   EXPO_PUBLIC_SUPABASE_URL
@@ -28,7 +34,7 @@ workflows:
   # ---------------------------------------------------------------- android
   android-debug-signed:
     name: Android — APK (debug-signed, for testing)
-    instance_type: linux_x2
+    instance_type: mac_mini_m2
     max_build_duration: 60
     environment:
       groups:
@@ -63,7 +69,7 @@ workflows:
 
   android-play-store:
     name: Android — AAB (signed, for Google Play)
-    instance_type: linux_x2
+    instance_type: mac_mini_m2
     max_build_duration: 60
     environment:
       groups:
@@ -165,7 +171,7 @@ workflows:
   # ------------------------------------------------------------------ checks
   pr-checks:
     name: Checks only (typecheck + bundle)
-    instance_type: linux_x2
+    instance_type: mac_mini_m2
     max_build_duration: 30
     environment:
       groups:

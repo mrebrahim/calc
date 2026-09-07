@@ -120,6 +120,10 @@ npx expo export --platform android        # يتأكد إن كل حاجة بتت
 بيعمل `expo prebuild` الأول. لازم كمان تضيف group اسمه `supabase` في
 Environment variables فيه `EXPO_PUBLIC_SUPABASE_URL` و `EXPO_PUBLIC_SUPABASE_KEY`.
 
+كل الـ workflows على `mac_mini_m2` لأن دقايق الخطة المجانية macOS بس؛
+`linux_x2` بيترفض بـ *"instance type is not available with the current billing plan"*
+لحد ما تفعّل الفوترة. بناء أندرويد شغال عادي على macOS.
+
 ---
 
 ## اللي جوه النسخة دي (MVP)
