@@ -1,0 +1,186 @@
+# Codemagic CI/CD — مصاريفي
+#
+# The repo is a managed Expo project: android/ and ios/ are NOT committed, so
+# every workflow regenerates them with `expo prebuild` before building.
+#
+# Environment variables to set in Codemagic (App settings → Environment variables),
+# both in a group named `supabase`:
+#   EXPO_PUBLIC_SUPABASE_URL
+#   EXPO_PUBLIC_SUPABASE_KEY
+# They are publishable client credentials, but they still belong in CI config
+# rather than in the repo.
+
+definitions:
+  scripts:
+    - &install
+      name: Install dependencies
+      script: npm ci --legacy-peer-deps
+
+    - &typecheck
+      name: Typecheck
+      script: npx tsc --noEmit
+
+    - &bundle_check
+      name: Verify the JS bundle builds
+      script: npx expo export --platform android --output-dir /tmp/expo-export
+
+workflows:
+  # ---------------------------------------------------------------- android
+  android-debug-signed:
+    name: Android — APK (debug-signed, for testing)
+    instance_type: linux_x2
+    max_build_duration: 60
+    environment:
+      groups:
+        - supabase
+      node: 22
+      java: 17
+    cache:
+      cache_paths:
+        - $HOME/.npm
+        - $HOME/.gradle/caches
+    scripts:
+      - *install
+      - *typecheck
+      - name: Prebuild native Android project
+        script: npx expo prebuild --platform android --clean
+      - name: Build release APK
+        # Expo's template signs `release` with the debug keystore, so this
+        # produces an installable APK with no signing setup. Fine for testing;
+        # use the play-store workflow below for anything shipped.
+        script: |
+          cd android
+          ./gradlew assembleRelease
+    artifacts:
+      - android/app/build/outputs/**/*.apk
+    publishing:
+      email:
+        recipients:
+          - moalmacademye@gmail.com
+        notify:
+          success: true
+          failure: true
+
+  android-play-store:
+    name: Android — AAB (signed, for Google Play)
+    instance_type: linux_x2
+    max_build_duration: 60
+    environment:
+      groups:
+        - supabase
+      # Upload your keystore under Codemagic → Code signing identities → Android,
+      # with the reference name below. Until then this workflow will fail at the
+      # signing step, which is the intended behaviour.
+      android_signing:
+        - masarify_keystore
+      node: 22
+      java: 17
+    cache:
+      cache_paths:
+        - $HOME/.npm
+        - $HOME/.gradle/caches
+    scripts:
+      - *install
+      - *typecheck
+      - *bundle_check
+      - name: Prebuild native Android project
+        script: npx expo prebuild --platform android --clean
+      - name: Point the release build at the uploaded keystore
+        script: |
+          cd android
+          cat >> gradle.properties <<'PROPS'
+          MASARIFY_UPLOAD_STORE_FILE=$CM_KEYSTORE_PATH
+          MASARIFY_UPLOAD_STORE_PASSWORD=$CM_KEYSTORE_PASSWORD
+          MASARIFY_UPLOAD_KEY_ALIAS=$CM_KEY_ALIAS
+          MASARIFY_UPLOAD_KEY_PASSWORD=$CM_KEY_PASSWORD
+          PROPS
+      - name: Build release AAB
+        script: |
+          cd android
+          ./gradlew bundleRelease
+    artifacts:
+      - android/app/build/outputs/**/*.aab
+      - android/app/build/outputs/**/mapping.txt
+    publishing:
+      email:
+        recipients:
+          - moalmacademye@gmail.com
+        notify:
+          success: true
+          failure: true
+      # google_play:
+      #   credentials: $GOOGLE_PLAY_SERVICE_ACCOUNT
+      #   track: internal
+
+  # -------------------------------------------------------------------- ios
+  ios-testflight:
+    name: iOS — IPA (needs an Apple Developer account)
+    instance_type: mac_mini_m2
+    max_build_duration: 90
+    environment:
+      groups:
+        - supabase
+      # Set up Codemagic → Teams → Integrations → Apple Developer Portal first,
+      # then replace the bundle identifier if you change it in app.json.
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: app.masarify.expenses
+      node: 22
+      xcode: latest
+      cocoapods: default
+    cache:
+      cache_paths:
+        - $HOME/.npm
+        - $HOME/Library/Caches/CocoaPods
+    scripts:
+      - *install
+      - *typecheck
+      - name: Prebuild native iOS project
+        script: npx expo prebuild --platform ios --clean
+      - name: Install CocoaPods
+        script: |
+          cd ios
+          pod install
+      - name: Set up code signing
+        script: xcode-project use-profiles
+      - name: Build IPA
+        # `msaryfy` is what prebuild transliterates the Arabic app name to;
+        # it is the Xcode project, scheme and workspace name. If you rename the
+        # app in app.json, re-run prebuild locally and update this.
+        script: |
+          xcode-project build-ipa \
+            --workspace ios/msaryfy.xcworkspace \
+            --scheme msaryfy
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      email:
+        recipients:
+          - moalmacademye@gmail.com
+        notify:
+          success: true
+          failure: true
+
+  # ------------------------------------------------------------------ checks
+  pr-checks:
+    name: Checks only (typecheck + bundle)
+    instance_type: linux_x2
+    max_build_duration: 30
+    environment:
+      groups:
+        - supabase
+      node: 22
+    cache:
+      cache_paths:
+        - $HOME/.npm
+    triggering:
+      events:
+        - pull_request
+      branch_patterns:
+        - pattern: '*'
+          include: true
+    scripts:
+      - *install
+      - *typecheck
+      - *bundle_check

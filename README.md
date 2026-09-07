@@ -105,6 +105,21 @@ npx tsc --noEmit                          # types
 npx expo export --platform android        # يتأكد إن كل حاجة بتتباندل
 ```
 
+### البناء (Codemagic)
+
+`codemagic.yaml` فيه 4 workflows:
+
+| Workflow | بيطلّع إيه | محتاج إيه |
+| --- | --- | --- |
+| `android-debug-signed` | APK للتجربة | مفيش — يشتغل على طول |
+| `android-play-store` | AAB موقّع | keystore مرفوع باسم `masarify_keystore` |
+| `ios-testflight` | IPA | حساب Apple Developer مربوط بـ Codemagic |
+| `pr-checks` | typecheck + bundle | مفيش |
+
+الـ `android/` و `ios/` **مش مرفوعين** في الريبو (مشروع Expo managed)، فكل workflow
+بيعمل `expo prebuild` الأول. لازم كمان تضيف group اسمه `supabase` في
+Environment variables فيه `EXPO_PUBLIC_SUPABASE_URL` و `EXPO_PUBLIC_SUPABASE_KEY`.
+
 ---
 
 ## اللي جوه النسخة دي (MVP)
