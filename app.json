@@ -1,0 +1,49 @@
+{
+  "expo": {
+    "name": "مصاريفي",
+    "slug": "masarify",
+    "scheme": "masarify",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "extra": {
+      "router": {}
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "app.masarify.expenses",
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "عشان نقفل بياناتك المالية ومحدش يفتحها غيرك."
+      }
+    },
+    "android": {
+      "package": "app.masarify.expenses",
+      "adaptiveIcon": {
+        "backgroundColor": "#0B5D51",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-sqlite",
+      "expo-localization",
+      [
+        "expo-local-authentication",
+        { "faceIDPermission": "عشان نقفل بياناتك المالية ومحدش يفتحها غيرك." }
+      ],
+      [
+        "expo-notifications",
+        { "color": "#0B5D51" }
+      ]
+    ]
+  }
+}
