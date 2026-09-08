@@ -119,8 +119,13 @@ workflows:
       #   track: internal
 
   # -------------------------------------------------------------------- ios
+  # REQUIRES a paid Apple Developer Program membership. Without one there are
+  # no provisioning profiles to match, and the build fails at signing with
+  # "No matching profiles found for bundle identifier ...". Use `ios-simulator`
+  # below until the membership and the Codemagic Apple Developer Portal
+  # integration are both in place.
   ios-testflight:
-    name: iOS — IPA (needs an Apple Developer account)
+    name: iOS — signed IPA (REQUIRES an Apple Developer account)
     instance_type: mac_mini_m2
     max_build_duration: 90
     environment:
@@ -160,6 +165,57 @@ workflows:
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
+    publishing:
+      email:
+        recipients:
+          - moalmacademye@gmail.com
+        notify:
+          success: true
+          failure: true
+
+  ios-simulator:
+    name: iOS — unsigned .app for the Simulator (no Apple account needed)
+    instance_type: mac_mini_m2
+    max_build_duration: 90
+    environment:
+      groups:
+        - supabase
+      node: 22
+      xcode: latest
+      cocoapods: default
+    cache:
+      cache_paths:
+        - $HOME/.npm
+        - $HOME/Library/Caches/CocoaPods
+    scripts:
+      - *install
+      - *typecheck
+      - name: Prebuild native iOS project
+        script: npx expo prebuild --platform ios --clean
+      - name: Install CocoaPods
+        script: |
+          cd ios
+          pod install
+      - name: Build unsigned .app for the Simulator
+        # Apple only lets you build for the Simulator without a certificate, so
+        # code signing is switched off entirely. The result runs in Xcode's
+        # Simulator but cannot be installed on a physical device.
+        script: |
+          xcodebuild \
+            -workspace ios/msaryfy.xcworkspace \
+            -scheme msaryfy \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -derivedDataPath ios/build \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+      - name: Zip the .app
+        script: |
+          cd ios/build/Build/Products/Release-iphonesimulator
+          zip -r -y $CM_BUILD_DIR/masarify-simulator.zip msaryfy.app
+    artifacts:
+      - masarify-simulator.zip
     publishing:
       email:
         recipients:
