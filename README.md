@@ -107,13 +107,14 @@ npx expo export --platform android        # يتأكد إن كل حاجة بتت
 
 ### البناء (Codemagic)
 
-`codemagic.yaml` فيه 4 workflows:
+`codemagic.yaml` فيه 5 workflows:
 
 | Workflow | بيطلّع إيه | محتاج إيه |
 | --- | --- | --- |
 | `android-debug-signed` | APK للتجربة | مفيش — يشتغل على طول |
 | `android-play-store` | AAB موقّع | keystore مرفوع باسم `masarify_keystore` |
-| `ios-testflight` | IPA | حساب Apple Developer مربوط بـ Codemagic |
+| `ios-simulator` | ‎.app للـ Simulator | **مفيش** — من غير حساب Apple |
+| `ios-testflight` | IPA موقّع | اشتراك Apple Developer مدفوع |
 | `pr-checks` | typecheck + bundle | مفيش |
 
 الـ `android/` و `ios/` **مش مرفوعين** في الريبو (مشروع Expo managed)، فكل workflow
